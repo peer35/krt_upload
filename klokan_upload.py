@@ -3,7 +3,7 @@
 # open sftp connection
 # walk through csv rows
 # upload tif per row
-from config import FTP_HOST, FTP_PASSWORD, FTP_USER, CSV_LIST
+from config import FTP_HOST, FTP_PASSWORD, FTP_USER, CSV_LIST, FILENAME_COLUMN
 import csv
 import sys
 import glob
