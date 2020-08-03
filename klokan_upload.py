@@ -10,6 +10,7 @@ import glob
 import os
 from ftplib import FTP
 
+
 class FtpKlokan():
     sizeWritten = 0
     totalSize = 0
@@ -30,7 +31,7 @@ class FtpKlokan():
             self.connection.login(FTP_USER, FTP_PASSWORD)
             self.connection.set_debuglevel(2)
 
-    def _download(self, path,  filename, local_path):
+    def _download(self, path, filename, local_path):
         self._connect()
         self.connection.retrbinary('%s%s' % (path, filename), local_path + filename)
         return filename
@@ -40,7 +41,7 @@ class FtpKlokan():
         percentComplete = round((self.sizeWritten / self.totalSize) * 100)
         if (self.lastShownPercent != percentComplete):
             self.lastShownPercent = percentComplete
-            #print("\r" + str(percentComplete) + " percent complete", end='')
+            # print("\r" + str(percentComplete) + " percent complete", end='')
 
     def upload(self, remote_path, local_file, filename):
         self._connect()
@@ -48,46 +49,45 @@ class FtpKlokan():
         with open(local_file, 'rb') as fp:
             self.connection.storbinary('STOR ' + filename, fp, 1024, self._handle)
 
-    def _dir(self, path):
+    def dir(self, path):
         self._connect()
-        dir = self.connection.retrlines(path)
+        dir = self.connection.nlst(path)
         return dir
 
 
-
-list={}
+list = {}
 for filename in glob.iglob('/dspace-storage/export/krt/**/*.tif', recursive=True):
     basename = os.path.basename(filename)
-    list[basename]=filename
+    list[basename] = filename
 
-#lol = csv.reader(open('FreeUniversityAmterdam1600-1800_maps.csv', 'rt', encoding='utf8'), delimiter=',')
 lol = csv.reader(open(CSV_LIST, 'rt', encoding='utf8'), delimiter=',')
 
-#1699,0106051013001,0106051013001.tif,http://imagebase.ubvu.vu.nl/cdm/ref/collection/krt/id/2977,http://imagebase.ubvu.vu.nl/cdm/deepzoom/collection/krt/id/2977,"Gallia, vulgo la France / [Nicolaes Visscher]",1677,Annotatie: Origineel is Blad 12 in atlas factice,"Visscher, Nicolaes (1618-1679)",[Amsterdam : ex officina Nicolai Visscher],46,56,2500000,300,52,41,8,-6,,
+# 1699,0106051013001,0106051013001.tif,http://imagebase.ubvu.vu.nl/cdm/ref/collection/krt/id/2977,http://imagebase.ubvu.vu.nl/cdm/deepzoom/collection/krt/id/2977,"Gallia, vulgo la France / [Nicolaes Visscher]",1677,Annotatie: Origineel is Blad 12 in atlas factice,"Visscher, Nicolaes (1618-1679)",[Amsterdam : ex officina Nicolai Visscher],46,56,2500000,300,52,41,8,-6,,
 s = FtpKlokan()
+remote_list = s.dir('')
 header = True
-n=0
-missing=[]
-grandtotal=0
+missing = []
+grandtotal = 0
 for line in lol:
-    filename=line[FILENAME_COLUMN] # or whatever column it is
-    try:
-        totalSize = os.path.getsize(list[filename])
-        s.lastShownPercent=0
-        s.sizeWritten=0
-        s.totalSize=totalSize
-        print(list[filename])
-        print('Total file size : ' + str(round(totalSize / 1024 / 1024 ,1)) + ' Mb')
-        grandtotal=grandtotal+totalSize
-        s.upload('/', list[filename], filename)
-    except:
-        print("Unexpected error:", sys.exc_info()[0])
-        missing.append(filename)
-
-    n=n+1
+    filename = line[FILENAME_COLUMN]  # or whatever column it is
+    if filename not in remote_list:
+        try:
+            totalSize = os.path.getsize(list[filename])
+            s.lastShownPercent = 0
+            s.sizeWritten = 0
+            s.totalSize = totalSize
+            print(list[filename])
+            print('Total file size : ' + str(round(totalSize / 1024 / 1024, 1)) + ' Mb')
+            grandtotal = grandtotal + totalSize
+            s.upload('/', list[filename], filename)
+        except:
+            print("Unexpected error uploading " + filename + ":", sys.exc_info()[0])
+            missing.append(filename)
+    else:
+        print(filename + ' already uploaded, skip.')
 print(missing)
 
-print('Grand total file size : ' + str(round(grandtotal / 1024 / 1024 /1024,1)) + ' Gb')
+print('Grand total file size : ' + str(round(grandtotal / 1024 / 1024 / 1024, 1)) + ' Gb')
 s.close()
 
 # eerste pluk 101.4GB
